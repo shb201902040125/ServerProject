@@ -126,6 +126,7 @@ namespace ServerProject
                     users.Remove(removeKey);
                 }
             }
+            socket.Close();
         }
         private async void SocketListenLoop(ISocket socket)
         {
@@ -145,10 +146,10 @@ namespace ServerProject
                         continue;
                     }
                 }
-                HandleMemory(result.Item1);
+                HandleMemory(result.Item1, socket);
             }
         }
-        private void HandleMemory(MemoryStream memory)
+        private void HandleMemory(MemoryStream memory,ISocket socket)
         {
             //TODO
         }
