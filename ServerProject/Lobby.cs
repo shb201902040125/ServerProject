@@ -10,56 +10,55 @@ using System.Xml;
 
 namespace ServerProject
 {
-    internal class Lobby
+    public class Lobby
     {
         public string UniqueID;
         public string? PassWord;
         public HashSet<ISocket> tourist = [];
         public Dictionary<string, UserInfo> users = [];
-        TcpListener _ipv4Listener, _ipv6Listener;
-        NamedPipeServerStream _localListner;
-        bool closed;
-        public Lobby(string uniqueID, string? passWord, int ipv4Port, int ipv6Port, string pipeNameRoot)
+        public int IPV4Port { get; protected set; }
+        public int IPV6Port { get; protected set; }
+        public string LocalServerName { get; protected set; }
+        protected TcpListener _ipv4Listener, _ipv6Listener;
+        protected NamedPipeServerStream _localListner;
+        public bool IsClosed;
+        public virtual void Init()
         {
-            UniqueID = uniqueID;
-            PassWord = passWord;
-
-            _ipv4Listener = new(IPAddress.Any, ipv4Port);
+            StartIPV4Listen();
+            StartIPV6Listen();
+            StartLocalListen();
+        }
+        protected void StartIPV4Listen()
+        {
+            _ipv4Listener = new(IPAddress.Any, IPV4Port);
             _ipv4Listener.Start();
             new Thread(IPV4ListenLoop)
             {
                 IsBackground = true,
-                Name = string.Join(".", uniqueID, "IPV4ListenLoop")
+                Name = string.Join(".", UniqueID, "IPV4ListenLoop")
             }.Start();
-            _ipv6Listener = new(IPAddress.IPv6Any, ipv6Port);
+        }
+        protected void StartIPV6Listen()
+        {
+            _ipv6Listener = new(IPAddress.IPv6Any, IPV6Port);
             _ipv6Listener.Start();
-
             new Thread(IPV6ListenLoop)
             {
                 IsBackground = true,
-                Name = string.Join(".", uniqueID, "IPV6ListenLoop")
+                Name = string.Join(".", UniqueID, "IPV6ListenLoop")
             }.Start();
-
+        }
+        protected void StartLocalListen()
+        {
             new Thread(LocalListenLoop)
             {
                 IsBackground = true,
-                Name = string.Join(".", uniqueID, "LocalListenLoop")
+                Name = string.Join(".", UniqueID, "LocalListenLoop")
             }.Start();
         }
-        public static bool TryCreate(out Lobby? lobby,string? uniqueID = null, string? passWord = null)
+        protected virtual void IPV4ListenLoop()
         {
-            uniqueID ??= Guid.NewGuid().ToString();
-            if(Utils.TryGetAvailablePortIPv4(49152,65535,out int ipv4Port)&&Utils.TryGetAvailablePortIPv6(49152, 65535, out int ipv6Port))
-            {
-                lobby = new(uniqueID, passWord, ipv4Port, ipv6Port, Program._localServerRoot);
-                return true;
-            }
-            lobby = null;
-            return false;
-        }
-        void IPV4ListenLoop()
-        {
-            while (!closed)
+            while (!IsClosed)
             {
                 try
                 {
@@ -71,9 +70,9 @@ namespace ServerProject
             }
             _ipv4Listener.Stop();
         }
-        void IPV6ListenLoop()
+        protected virtual void IPV6ListenLoop()
         {
-            while (!closed)
+            while (!IsClosed)
             {
                 try
                 {
@@ -85,15 +84,15 @@ namespace ServerProject
             }
             _ipv6Listener.Stop();
         }
-        void LocalListenLoop()
+        protected virtual void LocalListenLoop()
         {
-            while (!closed)
+            while (!IsClosed)
             {
                 try
                 {
-                    _localListner = new(string.Join(".", Program._localServerRoot, UniqueID, "Listen"), PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances);
+                    _localListner = new(string.Join(".", LocalServerName, "Listen"), PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances);
                     _localListner.WaitForConnection();
-                    string pipeName = string.Join(".", Program._localServerRoot, UniqueID, "Listen", Guid.NewGuid());
+                    string pipeName = string.Join(".", LocalServerName, "Listen", Guid.NewGuid());
                     _localListner.Write(Encoding.ASCII.GetBytes(pipeName));
                     AddSocket(new LocalSocket(pipeName));
                     _localListner.Close();
@@ -104,14 +103,14 @@ namespace ServerProject
             }
             _localListner.Close();
         }
-        private void AddSocket(ISocket socket)
+        protected virtual void AddSocket(ISocket socket)
         {
             tourist.Add(socket);
             Task.Factory.StartNew(() => SocketListenLoop(socket), TaskCreationOptions.LongRunning);
         }
-        private void RemoveSocket(ISocket socket)
+        protected virtual void RemoveSocket(ISocket socket)
         {
-            if(!tourist.Remove(socket))
+            if (!tourist.Remove(socket))
             {
                 string? removeKey = null;
                 foreach (var pair in users)
@@ -128,13 +127,13 @@ namespace ServerProject
             }
             socket.Close();
         }
-        private async void SocketListenLoop(ISocket socket)
+        protected virtual async void SocketListenLoop(ISocket socket)
         {
             socket.AsyncConnect();
             while (socket.IsConnected)
             {
                 var result = await socket.AsyncRecive();
-                if(result.Item1 == null)
+                if (result.Item1 == null)
                 {
                     if (!"CRC Check Error".Equals(result.Item2))
                     {
@@ -149,9 +148,9 @@ namespace ServerProject
                 HandleMemory(result.Item1, socket);
             }
         }
-        private void HandleMemory(MemoryStream memory,ISocket socket)
+        protected virtual void HandleMemory(MemoryStream memory, ISocket socket)
         {
-            //TODO
+            memory.Dispose();
         }
     }
 }

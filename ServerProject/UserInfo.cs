@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ServerProject
 {
-    internal class UserInfo
+    public class UserInfo
     {
         public ISocket Socket { get; private set; }
         public string? UniqueID;

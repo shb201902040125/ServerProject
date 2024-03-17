@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace ServerProject
 {
-    internal abstract class ISocket
+    public abstract class ISocket
     {
         public abstract RemoteAddress RemoteAddress { get; }
         public abstract bool IsConnected { get; }
@@ -17,7 +17,7 @@ namespace ServerProject
         public abstract Task<Tuple<MemoryStream?, object?>> AsyncRecive();
         public abstract void Close();
     }
-    internal class TCPSocket : ISocket
+    public class TCPSocket : ISocket
     {
         private TcpClient _connection;
         private TCPAddress _address;
@@ -97,7 +97,7 @@ namespace ServerProject
             }
         }
     }
-    internal class LocalSocket : ISocket
+    public class LocalSocket : ISocket
     {
         private NamedPipeServerStream _connection;
         private LocalAddress _address;

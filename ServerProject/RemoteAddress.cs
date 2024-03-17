@@ -3,9 +3,9 @@ using System.Net.Sockets;
 
 namespace ServerProject
 {
-    internal abstract class RemoteAddress
+    public abstract class RemoteAddress
     {
-        internal enum AddressType
+        public enum AddressType
         {
             IPV4,
             IPV6,
@@ -13,10 +13,11 @@ namespace ServerProject
         }
         public AddressType Type { get; protected set; }
     }
-    internal class TCPAddress : RemoteAddress
+    public class TCPAddress : RemoteAddress
     {
         internal readonly IPAddress _address;
         internal readonly int _port;
+        public IPAddress IPAddress => new(_address.GetAddressBytes());
         public TCPAddress(IPAddress address, int port)
         {
             Type = address.AddressFamily == AddressFamily.InterNetwork
@@ -28,9 +29,10 @@ namespace ServerProject
             _port = port;
         }
     }
-    internal class LocalAddress : RemoteAddress
+    public class LocalAddress : RemoteAddress
     {
         internal readonly string _label;
+        public string Label => _label;
         public LocalAddress(string label)
         {
             _label = label;
